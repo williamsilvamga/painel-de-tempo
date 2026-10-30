@@ -262,6 +262,16 @@
     #brilho, #tanque::before, #tanque::after, body.fim #anel, body.fim #contagem { animation: none; }
     .entra * { animation: none !important; }
   }
+
+  /* Editor de aparência Zion — isolado dos estilos do painel */
+  #aparencia-btn { border:1px solid #555; border-radius:12px; padding:8px 10px; color:var(--tinta); background:#171717; cursor:pointer; font:600 13px system-ui; }
+  #editor-cores[hidden] { display:none !important; }
+  #editor-cores { position:fixed; right:16px; top:75px; width:min(315px,calc(100vw - 32px)); z-index:20; padding:18px; border-radius:16px; border:1px solid #656565; background:#171717; color:#EDEDED; box-shadow:0 15px 45px #000b; font:14px system-ui; }
+  #editor-cores h2 { font-size:17px; margin:0 0 12px; }
+  #editor-cores label { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:12px 0; }
+  #editor-cores select, #editor-cores button { border:1px solid #777; border-radius:8px; background:#282828; color:#EDEDED; padding:9px; cursor:pointer; }
+  #editor-cores input[type=color] { width:72px; height:36px; border:1px solid #777; border-radius:6px; padding:2px; background:#282828; cursor:pointer; }
+  #editor-cores .acoes-cores { display:flex; gap:9px; justify-content:flex-end; margin-top:14px; }
 </style>
 </head>
 <body>
@@ -275,6 +285,7 @@
       <div class="ilha">
         <div id="posicao"></div>
         <div id="velho" title="Sem notícia da agenda há mais de 15 minutos"></div>
+        <button id="aparencia-btn" type="button" aria-controls="editor-cores" aria-expanded="false" title="Personalizar cores">Cores</button>
         <button id="som" aria-label="Som" title="Som (tecla S)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path id="ondas" d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
         </button>
@@ -325,6 +336,14 @@
     </div></form>
   </div>
 
+<aside id="editor-cores" hidden aria-label="Editor de cores">
+    <h2>Aparência · Zion</h2>
+    <label>Cor dos eventos <select id="modo-cor"><option value="google">Google Agenda</option><option value="personalizada">Personalizada</option></select></label>
+    <label>Cor de destaque <input id="cor-destaque" type="color" value="#6B6B6B"></label>
+    <label>Fundo <input id="cor-fundo" type="color" value="#0D0D0D"></label>
+    <label>Textos <input id="cor-texto" type="color" value="#EDEDED"></label>
+    <div class="acoes-cores"><button id="restaurar-cores" type="button">Restaurar Zion</button><button id="fechar-cores" type="button">Fechar</button></div>
+  </aside>
 <script>
 (function () {
   const $ = id => document.getElementById(id);
@@ -545,9 +564,52 @@
     r.setProperty('--alerta-txt', mistura('#F6F2EA', VERMELHO.texto, f));
     r.setProperty('--sombra', (f * .85).toFixed(3));
   }
+  /* Preferências locais: não são enviadas ao GitHub ou à agenda. */
+  const PADRAO_ZION = { modo:'google', destaque:'#6B6B6B', fundo:'#0D0D0D', texto:'#EDEDED' };
+  const TEMA_CHAVE = 'painel-de-tempo:cores-zion-v1';
+  const hexadecimal = v => typeof v === 'string' && /^#[0-9A-Fa-f]{6}$/.test(v);
+  function lerTema() {
+    try {
+      const v = JSON.parse(localStorage.getItem(TEMA_CHAVE) || '{}');
+      return {
+        modo: v.modo === 'personalizada' ? 'personalizada' : 'google',
+        destaque: hexadecimal(v.destaque) ? v.destaque : PADRAO_ZION.destaque,
+        fundo: hexadecimal(v.fundo) ? v.fundo : PADRAO_ZION.fundo,
+        texto: hexadecimal(v.texto) ? v.texto : PADRAO_ZION.texto
+      };
+    } catch (_) { return { ...PADRAO_ZION }; }
+  }
+  let tema = lerTema();
+  function atualizarTemaUI() {
+    $('modo-cor').value = tema.modo;
+    $('cor-destaque').value = tema.destaque;
+    $('cor-fundo').value = tema.fundo;
+    $('cor-texto').value = tema.texto;
+    $('cor-destaque').disabled = tema.modo === 'google';
+    document.documentElement.style.setProperty('--tinta',tema.texto);
+    document.documentElement.style.setProperty('--mudo',tema.texto + '94');
+    document.querySelector('meta[name="theme-color"]').content = tema.fundo;
+  }
+  function salvarTema() {
+    try { localStorage.setItem(TEMA_CHAVE, JSON.stringify(tema)); } catch (_) {}
+    atualizarTemaUI();
+    const atual = estado(agora());
+    aplicarCor(atual.fora ? null : atual.b.cor);
+  }
+  atualizarTemaUI();
+  $('aparencia-btn').addEventListener('click', () => {
+    $('editor-cores').hidden = !$('editor-cores').hidden;
+    $('aparencia-btn').setAttribute('aria-expanded',String(!$('editor-cores').hidden));
+  });
+  $('fechar-cores').addEventListener('click', () => { $('editor-cores').hidden = true; $('aparencia-btn').setAttribute('aria-expanded','false'); });
+  $('restaurar-cores').addEventListener('click', () => { tema = {...PADRAO_ZION}; salvarTema(); });
+  $('modo-cor').addEventListener('change', e => { tema.modo = e.target.value; salvarTema(); });
+  [['cor-destaque','destaque'],['cor-fundo','fundo'],['cor-texto','texto']].forEach(([id,chave]) => {
+    $(id).addEventListener('input', e => { if (hexadecimal(e.target.value)) { tema[chave] = e.target.value; salvarTema(); } });
+  });
   function aplicarCor(cor) {
-    corBase = cor || NEUTRO;
-    fundoBase = cor ? mistura('#0D0D0D', cor, .035) : '#0D0D0D';
+    corBase = tema.modo === 'personalizada' ? tema.destaque : (cor || tema.destaque);
+    fundoBase = tema.fundo;
     ultimoF = -1;
     pintar(0);
   }
