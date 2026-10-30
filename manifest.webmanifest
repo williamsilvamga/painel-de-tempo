@@ -1,0 +1,19 @@
+{
+  "name": "Painel de Tempo — William",
+  "short_name": "Painel",
+  "description": "Painel pessoal da Google Agenda",
+  "id": "/painel-de-tempo/",
+  "start_url": "/painel-de-tempo/",
+  "scope": "/painel-de-tempo/",
+  "display": "standalone",
+  "background_color": "#07080A",
+  "theme_color": "#07080A",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
