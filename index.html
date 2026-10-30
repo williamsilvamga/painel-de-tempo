@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Painel de Tempo</title>
 <meta name="description" content="Painel para deixar à vista em qualquer tela: o compromisso de agora da sua Google Agenda, com contagem regressiva e o que vem depois.">
-<meta name="theme-color" content="#07080A">
+<meta name="theme-color" content="#0D0D0D">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -19,10 +19,10 @@
 <style>
   :root {
     --u: min(1vw, 1.7778vh);
-    --cor: #4A5263;
-    --fundo: #07080A;
-    --tinta: #F4F6F8;
-    --mudo: rgba(244, 246, 248, .52);
+    --cor: #6B6B6B;
+    --fundo: #0D0D0D;
+    --tinta: #EDEDED;
+    --mudo: rgba(237, 237, 237, .58);
     --display: 'Archivo', system-ui, sans-serif;
     --texto: 'IBM Plex Sans', system-ui, sans-serif;
     --mono: 'IBM Plex Mono', ui-monospace, monospace;
@@ -110,7 +110,7 @@
   }
   .miolo {
     border-radius: calc(var(--u) * 1.55);
-    background: rgba(8, 10, 14, .64);
+    background: rgba(13, 13, 13, .78);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
     padding: calc(var(--u) * 2) calc(var(--u) * 2.4);
   }
@@ -122,7 +122,7 @@
     display: flex; align-items: center; gap: calc(var(--u) * 1.4);
     padding: calc(var(--u) * .8) calc(var(--u) * 1.8);
     border-radius: 999px;
-    background: rgba(8, 10, 14, .58);
+    background: rgba(13, 13, 13, .70);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08), inset 0 1px 0 rgba(255, 255, 255, .06);
   }
   #relogio { font-family: var(--display); font-variation-settings: 'wdth' 88; font-weight: 600; font-size: calc(var(--u) * 3); line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
@@ -182,7 +182,7 @@
   .passo.antes .ponto { background: rgba(255,255,255,.28); }
   .passo.depois .ponto { box-shadow: inset 0 0 0 2px rgba(255,255,255,.4); }
   .passo.agora .ponto { top: calc(var(--u) * 2.6); background: var(--cor); box-shadow: 0 0 0 calc(var(--u) * .35) rgba(255,255,255,.08), 0 0 calc(var(--u) * 1.6) var(--cor); }
-  .cartao { padding: calc(var(--u) * 1.1) calc(var(--u) * 1.8); border-radius: calc(var(--u) * 1.4); background: rgba(8,10,14,.38); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
+  .cartao { padding: calc(var(--u) * 1.1) calc(var(--u) * 1.8); border-radius: calc(var(--u) * 1.4); background: rgba(13,13,13,.56); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
   .passo.antes { opacity: .42; }
   .passo.depois { opacity: .58; }
   .rotulo { display: flex; justify-content: space-between; align-items: baseline; gap: calc(var(--u) * 1.4); margin-bottom: calc(var(--u) * .5); }
@@ -237,7 +237,7 @@
     background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }
   #conectar input:focus { box-shadow: inset 0 0 0 1px rgba(255,255,255,.4); }
   #conectar .acoes { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
-  #conectar button { padding: 13px 22px; border: 0; border-radius: 999px; cursor: pointer; font: 600 15px var(--texto); color: #07080A; background: #F4F6F8; transition: transform .2s var(--mola); }
+  #conectar button { padding: 13px 22px; border: 0; border-radius: 999px; cursor: pointer; font: 600 15px var(--texto); color: #0D0D0D; background: #EDEDED; transition: transform .2s var(--mola); }
   #conectar button:active { transform: scale(.97); }
   #conectar a { color: var(--mudo); font-size: 14px; text-underline-offset: 3px; }
   #conectar .erro { color: #FF7A70; font-size: 14px; }
@@ -515,8 +515,8 @@
 
   /* cor do compromisso; nos últimos 10 minutos ela vai virando vermelho (onda, fundo, nome e contagem) */
   const VERMELHO = { cor: '#D42A20', fundo: '#240707', texto: '#FF5A4F' };
-  const NEUTRO = '#4A5263';
-  let corBase = NEUTRO, fundoBase = '#07080A', ultimoF = -1;
+  const NEUTRO = '#6B6B6B';
+  let corBase = NEUTRO, fundoBase = '#0D0D0D', ultimoF = -1;
   const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
   const mistura = (a, b, f) => '#' + rgb(a).map((v, i) => Math.round(v + (rgb(b)[i] - v) * f).toString(16).padStart(2, '0')).join('');
   /* a cor gira pelo caminho mais curto até o vermelho: verde passa por amarelo e laranja, azul e roxo passam pelo magenta */
@@ -547,7 +547,7 @@
   }
   function aplicarCor(cor) {
     corBase = cor || NEUTRO;
-    fundoBase = cor ? mistura('#05070A', cor, .08) : '#07080A';
+    fundoBase = cor ? mistura('#0D0D0D', cor, .035) : '#0D0D0D';
     ultimoF = -1;
     pintar(0);
   }
