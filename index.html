@@ -262,6 +262,8 @@
     #brilho, #tanque::before, #tanque::after, body.fim #anel, body.fim #contagem { animation: none; }
     .entra * { animation: none !important; }
   }
+  #ativar-alertas { position:fixed; right:12px; bottom:12px; z-index:40; background:#24344f; color:white; border:1px solid #8193ad; border-radius:12px; padding:11px 14px; font:600 13px system-ui; cursor:pointer; }
+  #ativar-alertas[hidden] { display:none; }
 </style>
 </head>
 <body>
@@ -368,6 +370,51 @@
   const hm = s => pad(Math.floor(s / 3600)) + ':' + pad(Math.floor(s % 3600 / 60));
   const chaveDe = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
   const maisDias = (d, k) => { const x = new Date(d); x.setDate(x.getDate() + k); return x; };
+
+  /* Notificacoes locais: somente enquanto esta pagina estiver executando.
+     Web Push em segundo plano exige servidor de envio e nao esta configurado. */
+  const BOTAO_ALERTAS = document.getElementById('ativar-alertas');
+  const ALERTAS_KEY = 'painel-alertas-locais-v1';
+  const notificacoesPossiveis = !DEMO && 'Notification' in window && window.isSecureContext;
+  if (notificacoesPossiveis && Notification.permission === 'default') BOTAO_ALERTAS.hidden = false;
+  if (notificacoesPossiveis && Notification.permission === 'denied') BOTAO_ALERTAS.hidden = true;
+  BOTAO_ALERTAS.addEventListener('click', async () => {
+    const resultado = await Notification.requestPermission();
+    BOTAO_ALERTAS.hidden = resultado !== 'default';
+    if (resultado === 'granted') {
+      new Notification('Painel de Tempo', {body: 'Avisos habilitados enquanto o painel estiver aberto.'});
+    }
+  });
+  function conferirAlertasLocais(now) {
+    if (!notificacoesPossiveis || Notification.permission !== 'granted' || !carregou || !ultimoOk) return;
+    if (Date.now() - ultimoOk > 15 * 60000) return;
+    let feitos = {};
+    try { feitos = JSON.parse(localStorage.getItem(ALERTAS_KEY) || '{}') || {}; } catch (_) {}
+    const ms = now.getTime();
+    const tempos = [
+      { sufixo: 'antes', delta: -15 * 60000, mensagem: 'Seu compromisso começa em 15 minutos' },
+      { sufixo: 'inicio', delta: 0, mensagem: 'Seu compromisso começou' },
+      { sufixo: 'fim', delta: null, mensagem: 'Seu compromisso terminou' }
+    ];
+    let mudou = false;
+    EVENTOS.forEach(ev => {
+      const identidade = ev.ini.getTime() + '|' + ev.fim.getTime() + '|' + ev.nome;
+      tempos.forEach(t => {
+        const momento = t.sufixo === 'fim' ? ev.fim.getTime() : ev.ini.getTime() + t.delta;
+        // Evita alertas antigos quando o app e aberto depois do horario.
+        if (ms < momento || ms > momento + 12000) return;
+        const chave = identidade + '|' + t.sufixo;
+        if (feitos[chave]) return;
+        feitos[chave] = ms;
+        mudou = true;
+        try { new Notification(t.mensagem, {body: ev.nome, tag: chave}); } catch (_) {}
+      });
+    });
+    if (mudou) {
+      Object.keys(feitos).forEach(k => { if (ms - feitos[k] > 10 * 86400000) delete feitos[k]; });
+      try { localStorage.setItem(ALERTAS_KEY, JSON.stringify(feitos)); } catch (_) {}
+    }
+  }
 
   /* ===== dados da agenda ===== */
   let EVENTOS = [], carregou = false, ultimoOk = 0;
@@ -677,6 +724,7 @@
   let avisou5 = null;
   function tick() {
     const now = agora();
+    conferirAlertasLocais(now);
     const hora = pad(now.getHours()) + ':' + pad(now.getMinutes());
     if ($('relogio').textContent !== hora) $('relogio').textContent = hora;
     if ($('dia').textContent !== DIAS[now.getDay()]) $('dia').textContent = DIAS[now.getDay()];
@@ -755,5 +803,6 @@
   (function batida() { tick(); setTimeout(batida, 1000 - (Date.now() % 1000) + 15); })();
 })();
 </script>
+<button id="ativar-alertas" type="button" hidden>Ativar avisos neste dispositivo</button>
 </body>
 </html>
