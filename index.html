@@ -203,6 +203,10 @@
   .trilho { position: relative; }
   #linha { position: relative; display: flex; height: calc(var(--u) * 1.5); gap: 3px; }
   #linha .seg { height: 100%; border-radius: calc(var(--u) * .5); opacity: .28; transition: opacity .6s var(--mola); }
+  body.barras-personalizadas #linha .seg:not(.vazio) { background: var(--cor-linha) !important; color: var(--cor-linha) !important; }
+  body.barras-personalizadas #barra { background: var(--cor-progresso) !important; box-shadow: 0 0 12px var(--cor-progresso); }
+  body.barras-personalizadas #tanque { background: linear-gradient(to top, color-mix(in srgb, var(--cor-tanque) 58%, transparent), color-mix(in srgb, var(--cor-tanque) 12%, transparent)) !important; }
+  body.barras-personalizadas #tanque::before, body.barras-personalizadas #tanque::after { background: color-mix(in srgb, var(--cor-tanque) 16%, transparent) !important; }
   #linha .seg.vazio { background: none !important; opacity: 0; }
   #linha .seg.atual { opacity: 1; box-shadow: 0 0 calc(var(--u) * 1.4) currentColor; }
   #linha .seg.depois { opacity: .62; }
@@ -340,6 +344,10 @@
     <h2>Aparência · Zion</h2>
     <label>Cor dos eventos <select id="modo-cor"><option value="google">Google Agenda</option><option value="personalizada">Personalizada</option></select></label>
     <label>Cor de destaque <input id="cor-destaque" type="color" value="#6B6B6B"></label>
+    <label>Cores das barras <select id="modo-barras"><option value="evento">Automáticas</option><option value="personalizada">Personalizadas</option></select></label>
+    <label>Barra de progresso <input id="cor-progresso" type="color" value="#6B6B6B"></label>
+    <label>Linha do tempo <input id="cor-linha" type="color" value="#6B6B6B"></label>
+    <label>Preenchimento do fundo <input id="cor-tanque" type="color" value="#6B6B6B"></label>
     <label>Fundo <input id="cor-fundo" type="color" value="#0D0D0D"></label>
     <label>Textos <input id="cor-texto" type="color" value="#EDEDED"></label>
     <div class="acoes-cores"><button id="restaurar-cores" type="button">Restaurar Zion</button><button id="fechar-cores" type="button">Fechar</button></div>
@@ -565,7 +573,7 @@
     r.setProperty('--sombra', (f * .85).toFixed(3));
   }
   /* Preferências locais: não são enviadas ao GitHub ou à agenda. */
-  const PADRAO_ZION = { modo:'google', destaque:'#6B6B6B', fundo:'#0D0D0D', texto:'#EDEDED' };
+  const PADRAO_ZION = { modo:'google', destaque:'#6B6B6B', fundo:'#0D0D0D', texto:'#EDEDED', modoBarras:'evento', progresso:'#6B6B6B', linha:'#6B6B6B', tanque:'#6B6B6B' };
   const TEMA_CHAVE = 'painel-de-tempo:cores-zion-v1';
   const hexadecimal = v => typeof v === 'string' && /^#[0-9A-Fa-f]{6}$/.test(v);
   function lerTema() {
@@ -575,7 +583,11 @@
         modo: v.modo === 'personalizada' ? 'personalizada' : 'google',
         destaque: hexadecimal(v.destaque) ? v.destaque : PADRAO_ZION.destaque,
         fundo: hexadecimal(v.fundo) ? v.fundo : PADRAO_ZION.fundo,
-        texto: hexadecimal(v.texto) ? v.texto : PADRAO_ZION.texto
+        texto: hexadecimal(v.texto) ? v.texto : PADRAO_ZION.texto,
+        modoBarras: v.modoBarras === 'personalizada' ? 'personalizada' : 'evento',
+        progresso: hexadecimal(v.progresso) ? v.progresso : PADRAO_ZION.progresso,
+        linha: hexadecimal(v.linha) ? v.linha : PADRAO_ZION.linha,
+        tanque: hexadecimal(v.tanque) ? v.tanque : PADRAO_ZION.tanque
       };
     } catch (_) { return { ...PADRAO_ZION }; }
   }
@@ -585,6 +597,10 @@
     $('cor-destaque').value = tema.destaque;
     $('cor-fundo').value = tema.fundo;
     $('cor-texto').value = tema.texto;
+    $('modo-barras').value = tema.modoBarras;
+    ['progresso','linha','tanque'].forEach(k => { $('cor-' + k).value = tema[k]; $('cor-' + k).disabled = tema.modoBarras !== 'personalizada'; });
+    document.body.classList.toggle('barras-personalizadas', tema.modoBarras === 'personalizada');
+    ['progresso','linha','tanque'].forEach(k => document.documentElement.style.setProperty('--cor-' + k, tema[k]));
     $('cor-destaque').disabled = tema.modo === 'google';
     document.documentElement.style.setProperty('--tinta',tema.texto);
     document.documentElement.style.setProperty('--mudo',tema.texto + '94');
@@ -604,7 +620,8 @@
   $('fechar-cores').addEventListener('click', () => { $('editor-cores').hidden = true; $('aparencia-btn').setAttribute('aria-expanded','false'); });
   $('restaurar-cores').addEventListener('click', () => { tema = {...PADRAO_ZION}; salvarTema(); });
   $('modo-cor').addEventListener('change', e => { tema.modo = e.target.value; salvarTema(); });
-  [['cor-destaque','destaque'],['cor-fundo','fundo'],['cor-texto','texto']].forEach(([id,chave]) => {
+  $('modo-barras').addEventListener('change', e => { tema.modoBarras = e.target.value; salvarTema(); });
+  [['cor-destaque','destaque'],['cor-fundo','fundo'],['cor-texto','texto'],['cor-progresso','progresso'],['cor-linha','linha'],['cor-tanque','tanque']].forEach(([id,chave]) => {
     $(id).addEventListener('input', e => { if (hexadecimal(e.target.value)) { tema[chave] = e.target.value; salvarTema(); } });
   });
   function aplicarCor(cor) {
