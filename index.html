@@ -327,6 +327,7 @@
     </div></form>
   </div>
 
+<button id="ativar-alertas" type="button" hidden>Ativar avisos neste dispositivo</button>
 <script>
 (function () {
   const $ = id => document.getElementById(id);
@@ -803,6 +804,5 @@
   (function batida() { tick(); setTimeout(batida, 1000 - (Date.now() % 1000) + 15); })();
 })();
 </script>
-<button id="ativar-alertas" type="button" hidden>Ativar avisos neste dispositivo</button>
 </body>
 </html>
