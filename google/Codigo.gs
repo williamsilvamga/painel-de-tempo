@@ -35,53 +35,39 @@ function doGet(e) {
   return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
 }
 
-// Consulta a API oficial do Google Calendar para respeitar a resposta RSVP
-// do proprio participante (o metodo CalendarApp.getMyStatus pode ser impreciso).
+// Usa apenas CalendarApp, sem ativar outra API no Google Cloud.
+// Exclui convites recusados pelo status do usuario e, quando disponivel,
+// pela resposta individual presente na lista de convidados.
 function lerEventos() {
   const ini = new Date(); ini.setHours(0, 0, 0, 0);
   const fim = new Date(ini.getTime() + CONFIG.DIAS * 86400000);
   const eventos = [];
+  const email = (Session.getEffectiveUser().getEmail() || '').toLowerCase();
+
   CONFIG.AGENDAS.forEach(id => {
     const agenda = id === 'primary' ? CalendarApp.getDefaultCalendar() : CalendarApp.getCalendarById(id);
-    if (!agenda) throw new Error('Agenda nao encontrada: ' + id);
+    if (!agenda) throw new Error('Agenda não encontrada: ' + id);
     const corDaAgenda = agenda.getColor();
-    let pagina = '';
-    do {
-      const parametros = [
-        'singleEvents=true',
-        'showDeleted=false',
-        'maxResults=2500',
-        'timeMin=' + encodeURIComponent(ini.toISOString()),
-        'timeMax=' + encodeURIComponent(fim.toISOString())
-      ];
-      if (pagina) parametros.push('pageToken=' + encodeURIComponent(pagina));
-      const url = 'https://www.googleapis.com/calendar/v3/calendars/' +
-        encodeURIComponent(id) + '/events?' + parametros.join('&');
-      const resposta = UrlFetchApp.fetch(url, {
-        headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
-        muteHttpExceptions: true
-      });
-      if (resposta.getResponseCode() !== 200) {
-        throw new Error('Falha ao consultar Google Agenda (HTTP ' +
-          resposta.getResponseCode() + '): ' + resposta.getContentText().slice(0, 250));
+    agenda.getEvents(ini, fim).forEach(ev => {
+      if (ev.isAllDayEvent()) return;
+      const meuStatus = ev.getMyStatus();
+      if (meuStatus === CalendarApp.GuestStatus.NO) return;
+      // Em alguns convites, getMyStatus retorna OWNER mesmo para
+      // compromissos recusados. Conferimos tambem o convidado da conta.
+      if (email) {
+        const convidado = ev.getGuestList(true).find(g =>
+          (g.getEmail() || '').toLowerCase() === email
+        );
+        if (convidado && convidado.getGuestStatus() === CalendarApp.GuestStatus.NO) return;
       }
-      const dados = JSON.parse(resposta.getContentText());
-      (dados.items || []).forEach(ev => {
-        if (ev.status === 'cancelled') return;
-        if (!ev.start || !ev.end || !ev.start.dateTime || !ev.end.dateTime) return;
-        // A API indica precisamente qual participante representa esta agenda.
-        const propriaResposta = (ev.attendees || []).find(a => a.self === true);
-        if (propriaResposta && propriaResposta.responseStatus === 'declined') return;
-        eventos.push({
-          titulo: CONFIG.SO_OCUPADO ? 'Ocupado' : (ev.summary || 'Sem titulo'),
-          inicio: new Date(ev.start.dateTime).toISOString(),
-          fim: new Date(ev.end.dateTime).toISOString(),
-          descricao: CONFIG.SO_OCUPADO ? '' : (ev.description || ''),
-          cor: CORES[ev.colorId] || corDaAgenda
-        });
+      eventos.push({
+        titulo: CONFIG.SO_OCUPADO ? 'Ocupado' : (ev.getTitle() || 'Sem título'),
+        inicio: ev.getStartTime().toISOString(),
+        fim: ev.getEndTime().toISOString(),
+        descricao: CONFIG.SO_OCUPADO ? '' : (ev.getDescription() || ''),
+        cor: CORES[ev.getColor()] || corDaAgenda
       });
-      pagina = dados.nextPageToken || '';
-    } while (pagina);
+    });
   });
   return eventos.sort((a, b) => a.inicio.localeCompare(b.inicio));
 }
