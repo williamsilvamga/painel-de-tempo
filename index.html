@@ -269,6 +269,8 @@
 
   /* Editor de aparência Zion — isolado dos estilos do painel */
   #aparencia-btn { border:1px solid #555; border-radius:12px; padding:8px 10px; color:var(--tinta); background:#171717; cursor:pointer; font:600 13px system-ui; }
+  body #nome { color: var(--cor-nome, var(--alerta-txt, var(--tinta))); }
+  body #contagem { color: var(--cor-contagem, var(--alerta-txt, var(--tinta))); }
   #editor-cores[hidden] { display:none !important; }
   #editor-cores { position:fixed; right:16px; top:75px; width:min(315px,calc(100vw - 32px)); z-index:20; padding:18px; border-radius:16px; border:1px solid #656565; background:#171717; color:#EDEDED; box-shadow:0 15px 45px #000b; font:14px system-ui; }
   #editor-cores h2 { font-size:17px; margin:0 0 12px; }
@@ -349,7 +351,9 @@
     <label>Linha do tempo <input id="cor-linha" type="color" value="#6B6B6B"></label>
     <label>Preenchimento do fundo <input id="cor-tanque" type="color" value="#6B6B6B"></label>
     <label>Fundo <input id="cor-fundo" type="color" value="#0D0D0D"></label>
-    <label>Textos <input id="cor-texto" type="color" value="#EDEDED"></label>
+    <label>Textos gerais <input id="cor-texto" type="color" value="#EDEDED"></label>
+    <label>Nome do compromisso <input id="cor-nome" type="color" value="#EDEDED"></label>
+    <label>Minutos / contagem <input id="cor-contagem" type="color" value="#EDEDED"></label>
     <div class="acoes-cores"><button id="restaurar-cores" type="button">Restaurar Zion</button><button id="fechar-cores" type="button">Fechar</button></div>
   </aside>
 <script>
@@ -573,7 +577,7 @@
     r.setProperty('--sombra', (f * .85).toFixed(3));
   }
   /* Preferências locais: não são enviadas ao GitHub ou à agenda. */
-  const PADRAO_ZION = { modo:'google', destaque:'#6B6B6B', fundo:'#0D0D0D', texto:'#EDEDED', modoBarras:'evento', progresso:'#6B6B6B', linha:'#6B6B6B', tanque:'#6B6B6B' };
+  const PADRAO_ZION = { modo:'google', destaque:'#6B6B6B', fundo:'#0D0D0D', texto:'#EDEDED', nome:'#EDEDED', contagem:'#EDEDED', modoBarras:'evento', progresso:'#6B6B6B', linha:'#6B6B6B', tanque:'#6B6B6B' };
   const TEMA_CHAVE = 'painel-de-tempo:cores-zion-v1';
   const hexadecimal = v => typeof v === 'string' && /^#[0-9A-Fa-f]{6}$/.test(v);
   function lerTema() {
@@ -584,6 +588,8 @@
         destaque: hexadecimal(v.destaque) ? v.destaque : PADRAO_ZION.destaque,
         fundo: hexadecimal(v.fundo) ? v.fundo : PADRAO_ZION.fundo,
         texto: hexadecimal(v.texto) ? v.texto : PADRAO_ZION.texto,
+        nome: hexadecimal(v.nome) ? v.nome : PADRAO_ZION.nome,
+        contagem: hexadecimal(v.contagem) ? v.contagem : PADRAO_ZION.contagem,
         modoBarras: v.modoBarras === 'personalizada' ? 'personalizada' : 'evento',
         progresso: hexadecimal(v.progresso) ? v.progresso : PADRAO_ZION.progresso,
         linha: hexadecimal(v.linha) ? v.linha : PADRAO_ZION.linha,
@@ -597,6 +603,10 @@
     $('cor-destaque').value = tema.destaque;
     $('cor-fundo').value = tema.fundo;
     $('cor-texto').value = tema.texto;
+    $('cor-nome').value = tema.nome;
+    $('cor-contagem').value = tema.contagem;
+    document.documentElement.style.setProperty('--cor-nome',tema.nome);
+    document.documentElement.style.setProperty('--cor-contagem',tema.contagem);
     $('modo-barras').value = tema.modoBarras;
     ['progresso','linha','tanque'].forEach(k => { $('cor-' + k).value = tema[k]; $('cor-' + k).disabled = tema.modoBarras !== 'personalizada'; });
     document.body.classList.toggle('barras-personalizadas', tema.modoBarras === 'personalizada');
@@ -621,7 +631,7 @@
   $('restaurar-cores').addEventListener('click', () => { tema = {...PADRAO_ZION}; salvarTema(); });
   $('modo-cor').addEventListener('change', e => { tema.modo = e.target.value; salvarTema(); });
   $('modo-barras').addEventListener('change', e => { tema.modoBarras = e.target.value; salvarTema(); });
-  [['cor-destaque','destaque'],['cor-fundo','fundo'],['cor-texto','texto'],['cor-progresso','progresso'],['cor-linha','linha'],['cor-tanque','tanque']].forEach(([id,chave]) => {
+  [['cor-destaque','destaque'],['cor-fundo','fundo'],['cor-texto','texto'],['cor-nome','nome'],['cor-contagem','contagem'],['cor-progresso','progresso'],['cor-linha','linha'],['cor-tanque','tanque']].forEach(([id,chave]) => {
     $(id).addEventListener('input', e => { if (hexadecimal(e.target.value)) { tema[chave] = e.target.value; salvarTema(); } });
   });
   function aplicarCor(cor) {
